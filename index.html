@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link rel="icon" href="https://fastly.jsdelivr.net/gh/iusine/Image-bed/fe5dcc78-05f7-41d7-a6ce-329024e5374f.ico">
+    <title >图床工具</title>
+    <script>
+      // 提前应用主题，避免刷新闪烁
+      try {
+        var t = localStorage.getItem('ph-theme') || 'light'
+        var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        if (dark) document.documentElement.classList.add('dark')
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <noscript>
+      <strong>We're sorry but Picture Hosting doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+    </noscript>
+    <div id="app"></div>
+    <!-- built files will be auto injected -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

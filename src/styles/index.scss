@@ -1,0 +1,162 @@
+// ===== 主题设计变量（浅色默认 / html.dark 深色）=====
+:root {
+  color-scheme: light;
+  --bg-page: #f2f3f5;
+  --bg-panel: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-hover: #eef0f4;
+  --bg-active: rgba(64, 158, 255, 0.12);
+  --line: #e4e7ed;
+  --text-1: #303133;
+  --text-2: #50505c;
+  --text-3: #909399;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-hover: 0 10px 24px rgba(0, 0, 0, 0.14);
+  --radius-card: 10px;
+  --radius-sm: 8px;
+}
+
+html.dark {
+  color-scheme: dark;
+  --bg-page: #0c0d0f;
+  --bg-panel: #16181a;
+  --bg-elevated: #1d1f22;
+  --bg-hover: #232629;
+  --bg-active: rgba(64, 158, 255, 0.18);
+  --line: #2a2d31;
+  --text-1: #e5eaf3;
+  --text-2: #cfd3dc;
+  --text-3: #a3a6ad;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 10px 24px rgba(0, 0, 0, 0.65);
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-page);
+  color: var(--text-1);
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif;
+}
+
+#app {
+  height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+// ===== 通用页面骨架 =====
+.page-head {
+  margin-bottom: 16px;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.page-desc {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.panel {
+  background: var(--bg-panel);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.panel-pad {
+  padding: 20px;
+}
+
+.hover-lift {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+  }
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.gap-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.muted {
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+// ===== 上传 / 工具通用拖放区（参考站风格）=====
+.dropzone {
+  border: 1.5px dashed var(--line);
+  border-radius: var(--radius-card);
+  background: var(--bg-elevated);
+  color: var(--text-3);
+  text-align: center;
+  padding: 48px 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+
+  &:hover,
+  &.focus {
+    border-color: var(--el-color-primary);
+    color: var(--el-color-primary);
+    background: var(--bg-active);
+  }
+
+  .dz-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+  }
+
+  .dz-tip {
+    font-size: 15px;
+  }
+
+  .dz-sub {
+    margin-top: 6px;
+    font-size: 12px;
+    opacity: 0.75;
+  }
+}
+
+// ===== 滚动条 =====
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
