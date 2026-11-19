@@ -1,26 +1,16 @@
 <template>
-  <div class="manage-page">
+  <div class="manage-page" @dragover="onRootDragOver" @drop.prevent="onDragEnd">
     <div class="page-head">
       <div class="page-title">图床管理</div>
-      <div class="page-desc">选择仓库与目录，查询图片；支持上传、复制 CDN / Markdown 链接与删除。已选择的仓库与目录会在刷新后自动恢复。</div>
+      <div class="page-desc">选择仓库后单击文件夹即可进入目录，内容自动刷新；图片可拖到文件夹或面包屑路径上移动，也支持新建目录、上传、多选移动、复制 CDN / Markdown 链接与删除，最近上传的图片排在最前。已选择的仓库与目录会在刷新后自动恢复。</div>
     </div>
 
     <div class="panel panel-pad block">
-      <!-- 第一行：仓库 + 目录 + 查询 -->
+      <!-- 第一行：仓库 + 操作 -->
       <div class="row1">
         <el-select v-model="activeRepos" placeholder="请选择仓库" filterable style="width: 260px" @change="changeRepos">
           <el-option v-for="item in reposList" :key="item.id" :label="item.name" :value="item.name"></el-option>
         </el-select>
-        <el-cascader
-          :key="resourceShow"
-          v-model="activePath"
-          placeholder="请选择目录"
-          :options="pathArr"
-          :props="pathProps"
-          :disabled="!activeRepos"
-          style="width: 380px"
-        ></el-cascader>
-        <el-button type="primary" :icon="Search" :disabled="!activeRepos" @click="search">查询</el-button>
         <el-button class="upload-btn" type="primary" plain :icon="Upload" :disabled="!activeRepos" @click="openDrawer">上传</el-button>
       </div>
 
@@ -66,11 +56,72 @@
     </div>
 
     <div class="panel panel-pad">
-      <el-empty v-if="!fileList.length && !loading" :description="activeRepos ? '当前目录没有可显示的图片，点上方「上传」添加' : '请先选择仓库并查询'" />
+      <div class="crumb-bar">
+        <el-icon class="crumb-leaf"><Folder /></el-icon>
+        <span
+          class="crumb"
+          :class="{ current: !pathSegs.length, 'drop-active': dropTarget === '' }"
+          @click="goToDir([])"
+          @dragover="onDirDragOver($event, '')"
+          @dragleave="onDirDragLeave($event, '')"
+          @drop.prevent="onDropTo('')"
+        >根目录</span>
+        <template v-for="(seg, i) in pathSegs" :key="seg + i">
+          <el-icon class="crumb-sep"><ArrowRight /></el-icon>
+          <span
+            class="crumb"
+            :class="{ current: i === pathSegs.length - 1, 'drop-active': dropTarget === pathSegs.slice(0, i + 1).join('/') }"
+            @click="goToDir(pathSegs.slice(0, i + 1))"
+            @dragover="onDirDragOver($event, pathSegs.slice(0, i + 1).join('/'))"
+            @dragleave="onDirDragLeave($event, pathSegs.slice(0, i + 1).join('/'))"
+            @drop.prevent="onDropTo(pathSegs.slice(0, i + 1).join('/'))"
+          >{{ seg }}</span>
+        </template>
+        <el-button class="crumb-new" size="small" :icon="FolderAdd" :disabled="!activeRepos" @click="createDirectory">新建目录</el-button>
+      </div>
+      <div v-if="fileList.length" class="select-bar">
+        <el-checkbox
+          :model-value="allSelected"
+          :indeterminate="someSelected"
+          @change="toggleSelectAll"
+        >全选</el-checkbox>
+        <span class="count">已选 {{ selectedPaths.length }} / {{ fileList.length }} 张</span>
+        <el-button type="primary" size="small" :icon="Rank" :disabled="!selectedPaths.length" @click="openMoveDialog">移动到…</el-button>
+        <el-button size="small" text :disabled="!selectedPaths.length" @click="clearSelection">取消选择</el-button>
+      </div>
+      <el-empty
+        v-if="!fileList.length && !dirList.length && !loading"
+        :description="activeRepos ? '当前目录没有可显示的图片，点上方「上传」添加' : '请先选择仓库'"
+      />
       <div v-if="loading" class="loading-tip"><span class="spinner"></span>图片加载中…</div>
       <div v-viewer :key="viewerKey" class="image-grid">
-        <div class="image-container hover-lift" v-for="(file, index) in fileList" :key="index">
-          <el-image class="img" :src="imgUrl(file)" fit="scale-down"></el-image>
+        <div
+          class="folder-card hover-lift"
+          :class="{ 'drop-active': dropTarget === dir.path }"
+          v-for="dir in dirList"
+          :key="'dir-' + dir.path"
+          :title="`进入 ${dir.name}`"
+          @click="enterDir(dir)"
+          @dragover="onDirDragOver($event, dir.path)"
+          @dragleave="onDirDragLeave($event, dir.path)"
+          @drop.prevent="onDropTo(dir.path)"
+        >
+          <el-icon class="folder-icon" :size="40"><Folder /></el-icon>
+          <span class="folder-name">{{ dir.name }}</span>
+        </div>
+        <div
+          class="image-container hover-lift"
+          :class="{ selected: selectedPaths.includes(file.path) }"
+          v-for="(file, index) in fileList"
+          :key="index"
+          draggable="true"
+          @dragstart="onDragStart($event, file)"
+          @dragend="onDragEnd"
+        >
+          <div class="select-box" @click.stop>
+            <el-checkbox :model-value="selectedPaths.includes(file.path)" @change="toggleSelect(file)" />
+          </div>
+          <el-image class="img" :src="imgUrl(file)" fit="scale-down" lazy></el-image>
           <div class="image-content">
             <div class="info">
               <span>{{ file.name }}</span>
@@ -84,6 +135,11 @@
               <el-tooltip content="复制 Markdown 链接" placement="top">
                 <button type="button" class="op-btn" data-act="md" @click="copy(2, file)">
                   <SvgIcon icon-class="markdown" />
+                </button>
+              </el-tooltip>
+              <el-tooltip content="移动到其它目录" placement="top">
+                <button type="button" class="op-btn" data-act="move" @click="moveOne(file)">
+                  <el-icon><Rank /></el-icon>
                 </button>
               </el-tooltip>
               <el-tooltip content="删除" placement="top">
@@ -133,14 +189,44 @@
         </el-upload>
       </div>
     </el-drawer>
+
+    <el-dialog v-model="isMoveShow" title="移动图片" width="440px" append-to-body :close-on-click-modal="false">
+      <div class="muted">已选择 {{ selectedPaths.length }} 张图片，请选择目标目录（重名文件会拒绝移动）。</div>
+      <el-select
+        v-model="moveTarget"
+        filterable
+        :loading="dirLoading"
+        placeholder="选择目标目录"
+        style="width: 100%; margin-top: 12px"
+      >
+        <el-option label="根目录" value="__root__"></el-option>
+        <el-option v-for="dir in dirOptions" :key="dir" :label="dir" :value="dir"></el-option>
+      </el-select>
+      <template #footer>
+        <el-button @click="isMoveShow = false">取消</el-button>
+        <el-button type="primary" :loading="moving" @click="confirmMove">开始移动</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Upload, UploadFilled, Link, Delete } from '@element-plus/icons-vue'
+import { Upload, UploadFilled, Link, Delete, FolderAdd, Folder, Rank, ArrowRight } from '@element-plus/icons-vue'
 import SvgIcon from "@/components/SvgIcon"
-import { getUserRepos, getReposContents, delFile, upload } from "@/api/github"
+import {
+  getUserRepos,
+  getReposContents,
+  delFile,
+  upload,
+  getRepo,
+  getRef,
+  getCommit,
+  getTree,
+  createTree,
+  createCommit,
+  updateRef
+} from "@/api/github"
 import { isImgExt } from "@/utils/validate"
 import { randomUUID } from "@/utils/uuid"
 import { copyTextAsync } from "@/utils/copy"
@@ -148,36 +234,20 @@ import { taskQueue } from "@/utils/task-queue"
 
 export default {
   name: "Manage",
-  components: { SvgIcon, Search, Upload, UploadFilled, Link, Delete },
+  components: { SvgIcon, Upload, UploadFilled, Link, Delete, FolderAdd, Folder, Rank, ArrowRight },
   data() {
     return {
       reposList: [],
-      pathArr: [{ value: '', label: '根目录', leaf: false }],
       activeRepos: '',
       activePath: [''], // 默认选中根目录
-      pathProps: {
-        lazy: true,
-        checkStrictly: true,
-        lazyLoad: async (node, resolve) => {
-          if (!this.activeRepos) {
-            resolve([])
-            return
-          }
-          // element-plus 级联节点通过 pathValues 暴露从根到当前节点的值数组
-          const path = this.normalizePath(node.pathValues)
-          const nodes = []
-          await this.getReposContents(nodes, path)
-          resolve(nodes)
-        }
-      },
       hintShow1: true,
       hintShow2: true,
       hintShow3: true,
       fileList: [],
+      dirList: [],
       loading: false,
       // 每次查询后 +1，强制重建 v-viewer（否则新加载的图片不会绑定到 viewer）
       viewerKey: 0,
-      resourceShow: 0,
       isDrawerShow: false,
       nameType: '1',
       uploadList: [],
@@ -185,11 +255,24 @@ export default {
       isCustomPath: false,
       customPath: '', // 自定义目录（如 oldFolder/newFolder 或 /oldFolder/newFolder/）
       cdnBaseUrl: localStorage.getItem('cdnBaseUrl') || 'jsd.onmicrosoft.cn',
-      newCdnBaseUrl: ''
+      newCdnBaseUrl: '',
+      selectedPaths: [],
+      draggingPaths: [],
+      dropTarget: null,
+      isMoveShow: false,
+      moveTarget: '__root__',
+      dirOptions: [],
+      dirLoading: false,
+      moving: false,
+      uploadPending: 0,
+      uploadRefreshTimer: null
     }
   },
   computed: {
-    // 规范化自定义目录：去掉首尾斜杠，'/' 或空串视为仓库根目录
+    // 当前目录路径分段（不含根节点空值）
+    pathSegs() {
+      return (this.activePath || []).filter(p => typeof p === 'string' && p !== '')
+    },
     customDir() {
       const raw = this.isCustomPath ? this.customPath : ''
       return (raw || '').replace(/^\/+|\/+$/g, '')
@@ -202,13 +285,12 @@ export default {
       }
       const dir = this.currentDirPath()
       return `${base}/${dir ? dir + '/' : ''}`
-    }
-  },
-  watch: {
-    // 用户改动目录后自动记忆
-    activePath() {
-      if (this._restoring || !this.activeRepos) return
-      this.persistSelection()
+    },
+    allSelected() {
+      return this.fileList.length > 0 && this.selectedPaths.length === this.fileList.length
+    },
+    someSelected() {
+      return this.selectedPaths.length > 0 && !this.allSelected
     }
   },
   created() {
@@ -226,43 +308,26 @@ export default {
     }
   },
   methods: {
-    // 获取用户仓库，并恢复上次选择的仓库与目录
+    // 获取用户仓库，并恢复上次选择的仓库与目录，随后自动加载内容
     getRepos() {
-      getUserRepos(this.userInfo.login).then(async res => {
+      getUserRepos(this.userInfo.login).then(res => {
         this.reposList = res || []
         if (!this.reposList.length) return
         const savedRepo = localStorage.getItem('phRepo')
         this.activeRepos =
           savedRepo && this.reposList.some(r => r.name === savedRepo) ? savedRepo : this.reposList[0].name
-        this.resourceShow++ // 重新挂载级联选择器
-        this.fileList = []
-        this._restoring = true
-        try {
-          await this.restoreSelection()
-        } catch (e) {
-          console.warn('恢复目录失败，回到根目录', e)
-          this.activePath = ['']
-        } finally {
-          this._restoring = false
-        }
+        this.restoreSelection()
+        this.search()
       })
     },
     changeRepos() {
-      this.resourceShow++ // 改变级联选择器的 key 来重置其中选项内容
       this.activePath = [''] // 默认选中根目录
-      this.fileList = []
       this.persistSelection()
+      this.search()
     },
     // 当前选中目录（过滤根目录的空值标记）
     currentDirPath() {
-      return (this.activePath || [])
-        .filter(p => typeof p === 'string' && p !== '')
-        .join('/')
-    },
-    normalizePath(values) {
-      return (values || [])
-        .filter(p => typeof p === 'string' && p !== '')
-        .join('/')
+      return this.pathSegs.join('/')
     },
     // ===== 目录选择记忆 =====
     persistSelection() {
@@ -274,8 +339,7 @@ export default {
         console.warn(e)
       }
     },
-    // 读取记忆的目录，并按目录层级预取级联节点，保证回显与后续使用一致
-    async restoreSelection() {
+    restoreSelection() {
       let saved = []
       try {
         saved = JSON.parse(localStorage.getItem('phPath') || '[]')
@@ -283,71 +347,251 @@ export default {
         saved = []
       }
       const segs = (Array.isArray(saved) ? saved : []).filter(s => typeof s === 'string' && s !== '')
-      if (!segs.length) {
-        this.activePath = ['']
-        this.persistSelection()
-        return
-      }
-      const rootOption = await this.buildCascaderOptions(segs)
-      if (!rootOption) {
-        // 记忆的目录已不存在，安全回到根目录
-        this.activePath = ['']
-        this.persistSelection()
-        return
-      }
-      this.pathArr = [rootOption]
-      this.activePath = segs
+      this.activePath = ['', ...segs]
       this.persistSelection()
-      await this.$nextTick()
-    },
-    async buildCascaderOptions(segs) {
-      try {
-        const rootDirs = []
-        await this.getReposContents(rootDirs, '')
-        const rootOption = { value: '', label: '根目录', leaf: false, children: rootDirs }
-        let current = rootOption
-        let prefix = ''
-        for (const seg of segs) {
-          const dirs = current.children || []
-          const found = dirs.find(d => d.value === seg)
-          if (!found) return null
-          const deeper = []
-          await this.getReposContents(deeper, prefix ? `${prefix}/${seg}` : seg)
-          found.children = deeper
-          current = found
-          prefix = prefix ? `${prefix}/${seg}` : seg
-        }
-        return rootOption
-      } catch (e) {
-        console.warn(e)
-        return null
-      }
-    },
-    async getReposContents(arr, path) {
-      await getReposContents(this.userInfo.login, this.activeRepos, path).then(res => {
-        res.forEach(item => {
-          if (item.type === 'dir') {
-            // 让所有节点都是非叶子节点
-            arr.push({ value: item.name, label: item.name, leaf: false })
-          }
-        })
-      })
     },
     search() {
       if (!this.activeRepos) return
       this.loading = true
       this.fileList = []
+      this.dirList = []
+      this.clearSelection()
       const path = this.currentDirPath()
       getReposContents(this.userInfo.login, this.activeRepos, path).then(res => {
+        const files = []
+        const dirs = []
         res.forEach(item => {
-          if (item.type === 'file' && isImgExt(item.name)) {
-            this.fileList.push(item)
-          }
+          if (item.type === 'dir') dirs.push(item)
+          else if (item.type === 'file' && isImgExt(item.name)) files.push(item)
         })
+        this.dirList = dirs.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
+        this.fileList = this.sortByUploadTime(files)
         this.viewerKey++
+      }).catch(() => {
+        if (path) {
+          this.msgError('该目录已不存在，已返回根目录')
+          this.goToDir([])
+        } else {
+          this.msgError('目录加载失败，请稍后重试')
+        }
       }).finally(() => {
         this.loading = false
       })
+    },
+    // 跳转到指定目录（[] 表示根目录），路径变化后自动刷新
+    goToDir(segs) {
+      if (!this.activeRepos) return
+      const target = segs.join('/')
+      if (target === this.currentDirPath()) return
+      this.activePath = ['', ...segs]
+      this.persistSelection()
+      this.search()
+    },
+    // 单击文件夹进入该目录
+    enterDir(dir) {
+      this.goToDir([...this.pathSegs, dir.name])
+    },
+    // ===== 上传时间排序（记录在本机 localStorage，不上传任何服务器）=====
+    uploadTimeKey(path) {
+      return `${this.userInfo.login}/${this.activeRepos}/${path}`
+    },
+    readUploadTimes() {
+      try {
+        return JSON.parse(localStorage.getItem('phUploadTimes') || '{}')
+      } catch (e) {
+        return {}
+      }
+    },
+    recordUploadTime(path) {
+      const map = this.readUploadTimes()
+      map[this.uploadTimeKey(path)] = Date.now()
+      const keys = Object.keys(map)
+      if (keys.length > 3000) {
+        keys
+          .sort((a, b) => map[a] - map[b])
+          .slice(0, keys.length - 3000)
+          .forEach(k => delete map[k])
+      }
+      localStorage.setItem('phUploadTimes', JSON.stringify(map))
+    },
+    sortByUploadTime(files) {
+      const map = this.readUploadTimes()
+      return files
+        .map((file, index) => ({ file, time: map[this.uploadTimeKey(file.path)] || 0, index }))
+        .sort((a, b) => b.time - a.time || a.index - b.index)
+        .map(item => item.file)
+    },
+    // ===== 选择 / 移动 =====
+    toggleSelect(file) {
+      const index = this.selectedPaths.indexOf(file.path)
+      if (index >= 0) this.selectedPaths.splice(index, 1)
+      else this.selectedPaths.push(file.path)
+    },
+    toggleSelectAll(value) {
+      this.selectedPaths = value ? this.fileList.map(file => file.path) : []
+    },
+    clearSelection() {
+      this.selectedPaths = []
+    },
+    // ===== 拖拽移动（把图片拖到文件夹或面包屑目录上）=====
+    onDragStart(event, file) {
+      const paths = this.selectedPaths.includes(file.path) ? [...this.selectedPaths] : [file.path]
+      this.draggingPaths = paths
+      event.dataTransfer.effectAllowed = 'move'
+      event.dataTransfer.setData('text/plain', paths.join('\n'))
+    },
+    onDragEnd() {
+      this.draggingPaths = []
+      this.dropTarget = null
+    },
+    onRootDragOver(event) {
+      if (this.draggingPaths.length) event.preventDefault()
+    },
+    onDirDragOver(event, targetDir) {
+      if (!this.draggingPaths.length || targetDir === this.currentDirPath()) return
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+      if (this.dropTarget !== targetDir) this.dropTarget = targetDir
+    },
+    onDirDragLeave(event, targetDir) {
+      if (this.dropTarget !== targetDir) return
+      const to = event.relatedTarget
+      if (to && event.currentTarget.contains(to)) return
+      this.dropTarget = null
+    },
+    onDropTo(targetDir) {
+      const paths = this.draggingPaths
+      this.draggingPaths = []
+      this.dropTarget = null
+      if (!paths.length || targetDir === this.currentDirPath()) return
+      this.movePathsTo(paths, targetDir)
+    },
+    // 单张图片直接移动到其它目录
+    moveOne(file) {
+      this.selectedPaths = [file.path]
+      this.openMoveDialog()
+    },
+    openMoveDialog() {
+      if (!this.selectedPaths.length || !this.activeRepos) return
+      this.moveTarget = '__root__'
+      this.dirOptions = []
+      this.isMoveShow = true
+      this.loadDirOptions()
+    },
+    async loadDirOptions() {
+      this.dirLoading = true
+      try {
+        const repoInfo = await getRepo(this.userInfo.login, this.activeRepos)
+        const ref = await getRef(this.userInfo.login, this.activeRepos, repoInfo.default_branch)
+        const commitInfo = await getCommit(this.userInfo.login, this.activeRepos, ref.object.sha)
+        const tree = await getTree(this.userInfo.login, this.activeRepos, commitInfo.tree.sha)
+        this.dirOptions = (tree.tree || []).filter(item => item.type === 'tree').map(item => item.path)
+      } catch (e) {
+        console.error(e)
+        this.msgError('目录列表加载失败')
+      } finally {
+        this.dirLoading = false
+      }
+    },
+    async confirmMove() {
+      const targetDir = this.moveTarget === '__root__' ? '' : String(this.moveTarget || '')
+      if (await this.movePathsTo(this.selectedPaths, targetDir)) this.isMoveShow = false
+    },
+    // 把指定图片移动到目标目录（弹窗与拖拽共用）
+    async movePathsTo(paths, targetDir) {
+      if (!this.activeRepos || !paths.length) return false
+      const files = this.fileList.filter(f => paths.includes(f.path))
+      const moves = files.filter(f => f.path !== (targetDir ? `${targetDir}/${f.name}` : f.name))
+      if (!moves.length) {
+        this.msgError('所选图片已经在该目录中')
+        return false
+      }
+      this.moving = true
+      try {
+        const targetList = await getReposContents(this.userInfo.login, this.activeRepos, targetDir)
+        const existNames = new Set((targetList || []).map(item => item.name))
+        const conflicts = moves.filter(f => existNames.has(f.name))
+        if (conflicts.length) {
+          this.msgError(`目标目录已存在同名文件：${conflicts.map(f => f.name).join('、')}`)
+          return false
+        }
+        const repoInfo = await getRepo(this.userInfo.login, this.activeRepos)
+        const branch = repoInfo.default_branch
+        const ref = await getRef(this.userInfo.login, this.activeRepos, branch)
+        const headSha = ref.object.sha
+        const commitInfo = await getCommit(this.userInfo.login, this.activeRepos, headSha)
+        const treeEntries = []
+        moves.forEach(f => {
+          treeEntries.push({
+            path: targetDir ? `${targetDir}/${f.name}` : f.name,
+            mode: '100644',
+            type: 'blob',
+            sha: f.sha
+          })
+          treeEntries.push({ path: f.path, mode: '100644', type: 'blob', sha: null })
+        })
+        const tree = await createTree(this.userInfo.login, this.activeRepos, {
+          base_tree: commitInfo.tree.sha,
+          tree: treeEntries
+        })
+        const commit = await createCommit(this.userInfo.login, this.activeRepos, {
+          message: `Move ${moves.length} file(s) via YihePicBed`,
+          tree: tree.sha,
+          parents: [headSha]
+        })
+        await updateRef(this.userInfo.login, this.activeRepos, branch, { sha: commit.sha })
+        this.msgSuccess(`已移动 ${moves.length} 张图片`)
+        this.clearSelection()
+        // GitHub 内容接口有短暂缓存，稍等再刷新
+        setTimeout(() => this.search(), 600)
+        return true
+      } catch (e) {
+        console.error(e)
+        this.msgError('移动失败，请确认 Token 具有写入权限')
+        return false
+      } finally {
+        this.moving = false
+      }
+    },
+    // ===== 新建目录（Windows 规则：在当前目录中创建文件夹）=====
+    createDirectory() {
+      if (!this.activeRepos) return
+      const base = this.currentDirPath()
+      const names = new Set([...this.dirList.map(d => d.name), ...this.fileList.map(f => f.name)])
+      let defaultName = '新建文件夹'
+      for (let i = 2; names.has(defaultName); i++) defaultName = `新建文件夹 (${i})`
+      ElMessageBox.prompt(`在${base ? `「${base}」` : '根目录'}中新建文件夹`, '新建目录', {
+        confirmButtonText: '创建',
+        cancelButtonText: '取消',
+        inputValue: defaultName,
+        inputPlaceholder: '文件夹名称',
+        inputValidator(value) {
+          const name = (value || '').trim()
+          if (!name) return '文件夹名称不能为空'
+          if (name === '.' || name === '..') return '文件夹名称不合法'
+          if (/[\\/:*?"<>|]/.test(name)) return '文件夹名称不能包含 \\ / : * ? " < > |'
+          if (/[. ]$/.test(name)) return '文件夹名称不能以空格或点结尾'
+          if (names.has(name)) return '当前目录已存在同名文件或文件夹'
+          return true
+        }
+      })
+        .then(async ({ value }) => {
+          const name = value.trim()
+          const dir = base ? `${base}/${name}` : name
+          try {
+            await upload(this.userInfo.login, this.activeRepos, dir, '.gitkeep', {
+              message: `Create folder ${dir} via YihePicBed`,
+              content: 'Cg==' // 单个换行，留空文件无法提交
+            })
+            this.msgSuccess(`已创建文件夹：${name}`)
+            // GitHub 内容接口有短暂缓存，稍等再刷新列表
+            setTimeout(() => this.search(), 600)
+          } catch (e) {
+            console.error(e)
+            this.msgError('创建失败：当前目录可能已存在同名文件或文件夹')
+          }
+        })
+        .catch(() => {})
     },
     noDisplay(id) {
       localStorage.setItem(`hintShow${id}`, '1')
@@ -408,7 +652,9 @@ export default {
       }
     },
     upload(data) {
+      this.uploadPending++
       const reader = new FileReader()
+      reader.onerror = () => this.afterUpload()
       reader.readAsDataURL(data.file)
       reader.onload = () => {
         const base64 = reader.result.split(',')[1]
@@ -429,11 +675,21 @@ export default {
       let path = this.isCustomPath ? this.customDir : this.currentDirPath()
 
       upload(this.userInfo.login, this.activeRepos, path, fileName, requestData).then(() => {
+        this.recordUploadTime(path ? `${path}/${fileName}` : fileName)
         this.msgSuccess('上传成功')
         data.onSuccess()
       }).catch(err => {
         data.onError && data.onError(err)
+      }).finally(() => {
+        this.afterUpload()
       })
+    },
+    // 全部上传完成后自动刷新一次当前目录
+    afterUpload() {
+      this.uploadPending = Math.max(0, this.uploadPending - 1)
+      if (this.uploadPending > 0) return
+      clearTimeout(this.uploadRefreshTimer)
+      this.uploadRefreshTimer = setTimeout(() => this.search(), 700)
     },
     // 切换 CDN 基础 URL（临时生效）
     confirmCdnBaseUrl() {
@@ -473,10 +729,6 @@ export default {
   .row2-tip {
     margin-right: auto;
   }
-
-  .upload-btn {
-    margin-left: auto;
-  }
 }
 
 .row3 {
@@ -504,6 +756,132 @@ export default {
   gap: 10px;
 }
 
+.crumb-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-bottom: 12px;
+  min-height: 28px;
+  font-size: 14px;
+
+  .crumb-leaf {
+    margin-right: 4px;
+    color: var(--brand);
+  }
+
+  .crumb {
+    padding: 2px 8px;
+    border-radius: 8px;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      background: var(--bg-hover);
+      color: var(--brand-strong);
+    }
+
+    &.current {
+      color: var(--text-1);
+      font-weight: 600;
+      cursor: default;
+
+      &:hover {
+        background: transparent;
+        color: var(--text-1);
+      }
+    }
+
+    &.drop-active {
+      background: color-mix(in srgb, var(--brand) 20%, transparent);
+      color: var(--brand-strong);
+      box-shadow: inset 0 0 0 1px var(--brand);
+    }
+  }
+
+  .crumb-sep {
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
+  .crumb-new {
+    margin-left: auto;
+  }
+}
+
+.select-bar {
+  position: sticky;
+  top: 8px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--brand) 35%, var(--line));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--brand) 8%, var(--bg-elevated));
+  color: var(--text-2);
+  font-size: 13px;
+
+  .count {
+    margin-right: auto;
+  }
+
+  :deep(.el-checkbox) {
+    margin-right: 0;
+  }
+
+  :deep(.el-button + .el-button) {
+    margin-left: 0;
+  }
+}
+
+.select-box {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 3;
+  display: inline-flex;
+  padding: 2px 5px;
+  border-radius: 9px;
+  background: rgba(8, 15, 26, 0.55);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+
+  :deep(.el-checkbox) {
+    height: auto;
+    margin-right: 0;
+  }
+
+  :deep(.el-checkbox__inner) {
+    border-color: rgba(255, 255, 255, 0.75);
+    background: transparent;
+  }
+
+  :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+    border-color: var(--brand);
+    background: var(--brand);
+  }
+}
+
+.image-container:hover .select-box,
+.image-container.selected .select-box {
+  opacity: 1;
+}
+
+.image-container.selected {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 1px var(--brand);
+}
+
+@media (hover: none) {
+  .select-box {
+    opacity: 1;
+  }
+}
+
 .loading-tip {
   display: flex;
   align-items: center;
@@ -529,13 +907,67 @@ export default {
   }
 }
 
+.folder-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 190px;
+  height: 190px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--bg-elevated);
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+  content-visibility: auto;
+  contain-intrinsic-size: 190px 190px;
+
+  .folder-icon {
+    color: var(--brand);
+  }
+
+  .folder-name {
+    max-width: 160px;
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: center;
+    word-break: break-all;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--brand) 45%, var(--line));
+    background: color-mix(in srgb, var(--brand) 7%, var(--bg-elevated));
+    color: var(--text-1);
+  }
+
+  &.drop-active {
+    border-color: var(--brand);
+    background: color-mix(in srgb, var(--brand) 18%, var(--bg-elevated));
+    color: var(--brand-strong);
+  }
+}
+
 .image-container {
   position: relative;
   width: 190px;
   height: 190px;
   overflow: hidden;
-  border-radius: var(--radius-sm);
+  border-radius: 18px;
   border: 1px solid var(--line);
+  background: var(--bg-elevated);
+  transition: border-color 0.25s ease;
+  content-visibility: auto;
+  contain-intrinsic-size: 190px 190px;
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--brand) 45%, transparent);
+  }
 
   .img {
     width: 100%;
@@ -554,10 +986,10 @@ export default {
     left: 0;
     right: 0;
     top: 0;
-    padding: 6px 8px;
+    padding: 8px 10px 14px;
     font-size: 12px;
     color: #fff;
-    background: linear-gradient(0deg, transparent, rgba(0, 0, 0, 0.55));
+    background: linear-gradient(0deg, transparent, rgba(2, 6, 23, 0.72));
     opacity: 0;
     transition: opacity 0.25s ease;
     pointer-events: none;
@@ -580,7 +1012,7 @@ export default {
     gap: 10px;
     transform: translateY(6px);
     opacity: 0;
-    transition: all 0.25s ease;
+    transition: opacity 0.25s ease, transform 0.25s ease;
     pointer-events: auto; // 按钮区域允许点击
   }
 }
@@ -588,15 +1020,15 @@ export default {
 .op-btn {
   width: 30px;
   height: 30px;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(8, 15, 26, 0.55);
   color: #fff;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 
   .el-icon {
     font-size: 16px;
@@ -609,12 +1041,15 @@ export default {
   }
 
   &:hover {
-    background: var(--el-color-primary);
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: var(--brand-ink);
     transform: scale(1.12);
   }
 
   &.danger:hover {
     background: var(--el-color-danger);
+    color: #fff;
   }
 }
 

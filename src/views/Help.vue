@@ -102,9 +102,9 @@ export default {
   .help-img {
     max-width: 720px;
     width: 100%;
-    border-radius: var(--radius-sm);
+    border-radius: 18px;
     border: 1px solid var(--line);
-    box-shadow: var(--shadow-card);
+    box-shadow: var(--shadow-pop);
   }
 
   :deep(.el-link) {

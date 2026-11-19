@@ -1,9 +1,13 @@
 <template>
   <div class="app-wrapper">
     <aside class="app-sidebar">
+      <div class="sidebar-glow" aria-hidden="true"></div>
       <div class="sidebar-logo" @click="$router.push('/manage')">
-        <img :src="settings.logo" alt="logo"  >
-        <span class="logo-text">{{ settings.title }}</span>
+        <img :src="settings.logo" alt="logo">
+        <div class="logo-meta">
+          <span class="logo-text">{{ settings.brand }}</span>
+          <span class="logo-sub">{{ settings.subtitle }}</span>
+        </div>
       </div>
 
       <nav class="sidebar-nav">
@@ -98,127 +102,188 @@ export default {
 <style lang="scss" scoped>
 .app-wrapper {
   display: flex;
+  align-items: flex-start;
+  gap: 16px;
   min-height: 100vh;
+  padding: 16px;
 }
 
 .app-sidebar {
   position: sticky;
-  top: 0;
+  top: 16px;
   align-self: flex-start;
-  height: 100vh;
-  width: 224px;
-  flex: 0 0 224px;
+  height: calc(100vh - 32px);
+  width: 232px;
+  flex: 0 0 232px;
   display: flex;
   flex-direction: column;
-  padding: 12px 10px 16px;
-  background: var(--bg-panel);
-  border-right: 1px solid var(--line);
+  padding: 18px 14px 16px;
+  background: var(--bg-glass);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  box-shadow: var(--shadow-card);
   user-select: none;
   overflow-y: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.sidebar-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(420px 240px at 50% -10%, color-mix(in srgb, var(--brand) 18%, transparent), transparent 70%);
 }
 
 .sidebar-logo {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: px;
-  padding: 4px 1px 5px;
+  gap: 12px;
+  padding: 4px 6px 18px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line);
   cursor: pointer;
 
   img {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    border-radius: 14px;
+    object-fit: cover;
+  }
+
+  .logo-meta {
+    min-width: 0;
   }
 
   .logo-text {
-    font-size: 19px;
-    font-weight: 600;
+    display: block;
+    font-family: var(--font-display);
+    font-size: 26px;
+    line-height: 1;
     color: var(--text-1);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+  .logo-sub {
+    display: block;
+    margin-top: 3px;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text-3);
+  }
 }
 
 .sidebar-nav {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .nav-group-title {
-  padding: 14px 10px 6px;
-  font-size: 12px;
+  padding: 16px 10px 6px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
   color: var(--text-3);
 }
 
 .nav-item {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
-  margin: 1px 0;
-  border-radius: 8px;
+  gap: 11px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 14px;
   color: var(--text-2);
   text-decoration: none;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+
+  .nav-icon {
+    flex: 0 0 auto;
+    transition: color 0.2s ease, filter 0.2s ease;
+  }
 
   &:hover {
     background: var(--bg-hover);
+    border-color: var(--line);
     color: var(--text-1);
   }
 
   &.active {
-    background: var(--bg-active);
-    color: var(--el-color-primary);
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--brand) 22%, transparent),
+      color-mix(in srgb, var(--brand) 6%, transparent)
+    );
+    border-color: color-mix(in srgb, var(--brand) 45%, transparent);
+    color: var(--brand-strong);
     font-weight: 600;
+
+    .nav-icon {
+      color: var(--brand);
+    }
   }
 }
 
 .sidebar-footer {
-  margin-top: 12px;
-  padding: 10px;
+  position: relative;
+  margin-top: 14px;
+  padding-top: 14px;
   border-top: 1px solid var(--line);
 
   .theme-title {
-    font-size: 12px;
-    color: var(--text-3);
     margin-bottom: 8px;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--text-3);
   }
 
   .theme-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
   }
 
   .theme-btn {
-    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 3px;
-    padding: 6px 4px;
+    gap: 4px;
+    padding: 8px 4px;
     border: 1px solid var(--line);
-    border-radius: 8px;
-    background: transparent;
+    border-radius: 12px;
+    background: var(--bg-elevated);
     color: var(--text-3);
+    font-family: inherit;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease,
+      transform 0.2s ease;
 
     .theme-text {
       font-size: 11px;
     }
 
     &:hover {
-      color: var(--el-color-primary);
-      border-color: var(--el-color-primary);
+      color: var(--brand-strong);
+      border-color: color-mix(in srgb, var(--brand) 45%, transparent);
+      transform: translateY(-1px);
     }
 
     &.active {
-      color: #fff;
-      background: var(--el-color-primary);
-      border-color: var(--el-color-primary);
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      border-color: transparent;
+      color: var(--brand-ink);
+      box-shadow: 0 8px 20px -10px color-mix(in srgb, var(--brand) 80%, transparent);
     }
   }
 }
@@ -226,19 +291,39 @@ export default {
 .app-main {
   flex: 1;
   min-width: 0;
-  padding: 24px;
-  background: var(--bg-page);
+  padding: 8px 4px 28px 0;
+  background: transparent;
   overflow-x: hidden;
 }
 
-@media (max-width: 768px) {
-  .app-sidebar {
-    width: 64px;
-    flex-basis: 64px;
-    padding: 10px 6px;
+@media (max-width: 860px) {
+  .app-wrapper {
+    gap: 10px;
+    padding: 10px;
   }
 
-  .logo-text,
+  .app-sidebar {
+    top: 10px;
+    height: calc(100vh - 20px);
+    width: 68px;
+    flex-basis: 68px;
+    padding: 14px 8px;
+    border-radius: 22px;
+  }
+
+  .sidebar-logo {
+    justify-content: center;
+    padding: 2px 0 16px;
+
+    img {
+      width: 38px;
+      height: 38px;
+      flex-basis: 38px;
+      border-radius: 12px;
+    }
+  }
+
+  .logo-meta,
   .nav-text,
   .nav-group-title,
   .theme-text,
@@ -246,9 +331,21 @@ export default {
     display: none;
   }
 
-  .nav-item,
-  .sidebar-logo {
+  .nav-item {
     justify-content: center;
+    padding: 11px 0;
+  }
+
+  .theme-row {
+    grid-template-columns: 1fr;
+  }
+
+  .theme-btn {
+    padding: 8px 0;
+  }
+
+  .app-main {
+    padding: 4px 0 20px;
   }
 }
 </style>

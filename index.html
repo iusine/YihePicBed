@@ -4,12 +4,18 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta name="theme-color" content="#0b1220">
     <link rel="icon" href="https://fastly.jsdelivr.net/gh/iusine/Image-bed/fe5dcc78-05f7-41d7-a6ce-329024e5374f.ico">
-    <title >图床工具</title>
+    <link rel="preload" href="/fonts/averia-gruesa-libre.woff2" as="font" type="font/woff2" crossorigin>
+    <title>Yihe 图床</title>
+    <style>
+      html { background-color: #0b1220; }
+      html:not(.dark) { background-color: #eaf2fb; }
+    </style>
     <script>
-      // 提前应用主题，避免刷新闪烁
+      // 提前应用主题，避免刷新闪烁（默认跟随系统）
       try {
-        var t = localStorage.getItem('ph-theme') || 'light'
+        var t = localStorage.getItem('ph-theme') || 'system'
         var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
         if (dark) document.documentElement.classList.add('dark')
       } catch (e) {}
@@ -17,7 +23,7 @@
   </head>
   <body>
     <noscript>
-      <strong>We're sorry but Picture Hosting doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+      <strong>We're sorry but Yihe 图床 doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
     </noscript>
     <div id="app"></div>
     <!-- built files will be auto injected -->

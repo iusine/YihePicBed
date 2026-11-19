@@ -50,3 +50,61 @@ export function upload(name, repos, path, fileName, data) {
 		data
 	})
 }
+
+// ===== Git Data API：用于一次提交批量移动文件 =====
+
+// 仓库信息（取默认分支）
+export function getRepo(name, repos) {
+	return request({
+		url: `/repos/${name}/${repos}`,
+		method: 'GET'
+	})
+}
+
+// 分支当前指向的提交
+export function getRef(name, repos, branch) {
+	return request({
+		url: `/repos/${name}/${repos}/git/ref/heads/${encodeURIComponent(branch)}`,
+		method: 'GET'
+	})
+}
+
+// 提交详情（取根 tree sha）
+export function getCommit(name, repos, sha) {
+	return request({
+		url: `/repos/${name}/${repos}/git/commits/${sha}`,
+		method: 'GET'
+	})
+}
+
+// 递归读取目录树（用于列出全部目录）
+export function getTree(name, repos, sha, recursive = true) {
+	return request({
+		url: `/repos/${name}/${repos}/git/trees/${sha}${recursive ? '?recursive=1' : ''}`,
+		method: 'GET'
+	})
+}
+
+export function createTree(name, repos, data) {
+	return request({
+		url: `/repos/${name}/${repos}/git/trees`,
+		method: 'POST',
+		data
+	})
+}
+
+export function createCommit(name, repos, data) {
+	return request({
+		url: `/repos/${name}/${repos}/git/commits`,
+		method: 'POST',
+		data
+	})
+}
+
+export function updateRef(name, repos, branch, data) {
+	return request({
+		url: `/repos/${name}/${repos}/git/refs/heads/${encodeURIComponent(branch)}`,
+		method: 'PATCH',
+		data
+	})
+}

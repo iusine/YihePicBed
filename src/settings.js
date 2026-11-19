@@ -3,7 +3,19 @@ export default {
 	 * @type {string}
 	 * @description page title
 	 */
-	title: '图床工具',
+	title: 'Yihe 图床',
+
+	/**
+	 * @type {string}
+	 * @description 侧边栏品牌名
+	 */
+	brand: 'Yihe',
+
+	/**
+	 * @type {string}
+	 * @description 侧边栏品牌副标题
+	 */
+	subtitle: '图床工具',
 
 	/**
 	 * @type {string}

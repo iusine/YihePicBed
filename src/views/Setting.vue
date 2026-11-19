@@ -30,7 +30,7 @@
         <el-avatar :size="44" :src="userInfo.avatar_url">{{ (userInfo.login || '?').slice(0, 1) }}</el-avatar>
         <div>
           <div class="user-login">{{ userInfo.login || '未配置' }}</div>
-          <div class="muted">Token 与用户信息仅保存在浏览器本地（localStorage）</div>
+          <div class="muted">Token 仅保存在本机浏览器（localStorage），只随请求发往 api.github.com，不会上传到任何第三方服务器</div>
         </div>
       </div>
 

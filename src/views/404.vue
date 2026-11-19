@@ -2,241 +2,257 @@
 	<div class="wscn-http404-container">
 		<div class="wscn-http404">
 			<div class="pic-404">
-				<img class="pic-404__parent" src="@/assets/404_images/404.png" alt="404">
-				<img class="pic-404__child left" src="@/assets/404_images/404_cloud.png" alt="404">
-				<img class="pic-404__child mid" src="@/assets/404_images/404_cloud.png" alt="404">
-				<img class="pic-404__child right" src="@/assets/404_images/404_cloud.png" alt="404">
+				<div class="pic-404__frame">
+					<img class="pic-404__parent" src="@/assets/404_images/404.png" alt="404">
+					<img class="pic-404__child left" src="@/assets/404_images/404_cloud.png" alt="">
+					<img class="pic-404__child mid" src="@/assets/404_images/404_cloud.png" alt="">
+					<img class="pic-404__child right" src="@/assets/404_images/404_cloud.png" alt="">
+				</div>
 			</div>
 			<div class="bullshit">
-				<div class="bullshit__oops">OOPS!</div>
-				<div class="bullshit__info">All rights reserved
-					<a style="color:#20a0ff" href="https://wallstreetcn.com" target="_blank">wallstreetcn</a>
-				</div>
-				<div class="bullshit__headline">{{ message }}</div>
-				<div class="bullshit__info">Please check that the URL you entered is correct, or click the button below to return to the homepage.</div>
-				<a href="/" class="bullshit__return-home">Back to home</a>
+				<div class="bullshit__oops">404</div>
+				<div class="bullshit__headline">页面走丢了</div>
+				<div class="bullshit__info">链接可能已失效，或你访问的地址不存在。回到图床继续管理你的图片吧。</div>
+				<a href="#/" class="bullshit__return-home">回到图床</a>
 			</div>
 		</div>
 	</div>
 </template>
 
 <script>
-
 	export default {
-		name: 'Page404',
-		computed: {
-			message() {
-				return 'The webmaster said that you can not enter this page...'
-			}
-		}
+		name: 'Page404'
 	}
 </script>
 
 <style lang="scss" scoped>
 	.wscn-http404-container {
-		transform: translate(-50%, -50%);
-		position: absolute;
-		top: 40%;
-		left: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 100vh;
+		padding: 24px;
 	}
 
 	.wscn-http404 {
-		position: relative;
-		width: 1200px;
-		padding: 0 50px;
+		display: flex;
+		align-items: center;
+		gap: 36px;
+		width: min(1000px, 100%);
+		padding: 36px;
 		overflow: hidden;
+		background: var(--bg-glass);
+		border: 1px solid var(--line);
+		border-radius: 32px;
+		box-shadow: var(--shadow-card);
+	}
 
-		.pic-404 {
+	.pic-404 {
+		position: relative;
+		flex: 0 1 58%;
+		min-width: 0;
+
+		&__frame {
 			position: relative;
-			float: left;
-			width: 600px;
-			overflow: hidden;
+			padding: 10px;
+			background: #ffffff;
+			border-radius: 24px;
+			box-shadow: 0 24px 50px -30px rgba(2, 6, 23, 0.55);
+		}
 
-			&__parent {
-				width: 100%;
+		&__parent {
+			display: block;
+			width: 100%;
+			border-radius: 16px;
+		}
+
+		&__child {
+			position: absolute;
+
+			&.left {
+				width: 80px;
+				top: 17px;
+				left: 36%;
+				opacity: 0;
+				animation: cloudLeft 2s linear 1s forwards;
 			}
 
-			&__child {
-				position: absolute;
+			&.mid {
+				width: 46px;
+				top: 10px;
+				left: 70%;
+				opacity: 0;
+				animation: cloudMid 2s linear 1.2s forwards;
+			}
 
-				&.left {
-					width: 80px;
+			&.right {
+				width: 62px;
+				top: 100px;
+				left: 84%;
+				opacity: 0;
+				animation: cloudRight 2s linear 1s forwards;
+			}
+
+			@keyframes cloudLeft {
+				0% {
 					top: 17px;
-					left: 220px;
+					left: 36%;
 					opacity: 0;
-					animation-name: cloudLeft;
-					animation-duration: 2s;
-					animation-timing-function: linear;
-					animation-fill-mode: forwards;
-					animation-delay: 1s;
 				}
+				20% {
+					top: 33px;
+					left: 30%;
+					opacity: 1;
+				}
+				80% {
+					top: 81px;
+					left: 14%;
+					opacity: 1;
+				}
+				100% {
+					top: 97px;
+					left: 8%;
+					opacity: 0;
+				}
+			}
 
-				&.mid {
-					width: 46px;
+			@keyframes cloudMid {
+				0% {
 					top: 10px;
-					left: 420px;
+					left: 70%;
 					opacity: 0;
-					animation-name: cloudMid;
-					animation-duration: 2s;
-					animation-timing-function: linear;
-					animation-fill-mode: forwards;
-					animation-delay: 1.2s;
 				}
+				20% {
+					top: 40px;
+					left: 60%;
+					opacity: 1;
+				}
+				70% {
+					top: 130px;
+					left: 30%;
+					opacity: 1;
+				}
+				100% {
+					top: 160px;
+					left: 20%;
+					opacity: 0;
+				}
+			}
 
-				&.right {
-					width: 62px;
+			@keyframes cloudRight {
+				0% {
 					top: 100px;
-					left: 500px;
+					left: 84%;
 					opacity: 0;
-					animation-name: cloudRight;
-					animation-duration: 2s;
-					animation-timing-function: linear;
-					animation-fill-mode: forwards;
-					animation-delay: 1s;
 				}
-
-				@keyframes cloudLeft {
-					0% {
-						top: 17px;
-						left: 220px;
-						opacity: 0;
-					}
-					20% {
-						top: 33px;
-						left: 188px;
-						opacity: 1;
-					}
-					80% {
-						top: 81px;
-						left: 92px;
-						opacity: 1;
-					}
-					100% {
-						top: 97px;
-						left: 60px;
-						opacity: 0;
-					}
+				20% {
+					top: 120px;
+					left: 77%;
+					opacity: 1;
 				}
-				@keyframes cloudMid {
-					0% {
-						top: 10px;
-						left: 420px;
-						opacity: 0;
-					}
-					20% {
-						top: 40px;
-						left: 360px;
-						opacity: 1;
-					}
-					70% {
-						top: 130px;
-						left: 180px;
-						opacity: 1;
-					}
-					100% {
-						top: 160px;
-						left: 120px;
-						opacity: 0;
-					}
+				80% {
+					top: 180px;
+					left: 57%;
+					opacity: 1;
 				}
-				@keyframes cloudRight {
-					0% {
-						top: 100px;
-						left: 500px;
-						opacity: 0;
-					}
-					20% {
-						top: 120px;
-						left: 460px;
-						opacity: 1;
-					}
-					80% {
-						top: 180px;
-						left: 340px;
-						opacity: 1;
-					}
-					100% {
-						top: 200px;
-						left: 300px;
-						opacity: 0;
-					}
+				100% {
+					top: 200px;
+					left: 50%;
+					opacity: 0;
 				}
 			}
 		}
+	}
 
-		.bullshit {
-			position: relative;
-			float: left;
-			width: 300px;
-			padding: 30px 0;
-			overflow: hidden;
+	.bullshit {
+		flex: 1;
+		min-width: 0;
 
-			&__oops {
-				font-size: 32px;
-				font-weight: bold;
-				line-height: 40px;
-				color: #1482f0;
+		&__oops {
+			font-family: var(--font-display);
+			font-size: 64px;
+			line-height: 1;
+			letter-spacing: 0.02em;
+			background: var(--title-grad);
+			-webkit-background-clip: text;
+			background-clip: text;
+			-webkit-text-fill-color: transparent;
+			opacity: 0;
+			animation: slideUp 0.5s ease forwards;
+		}
+
+		&__headline {
+			margin-top: 14px;
+			font-size: 22px;
+			font-weight: 600;
+			color: var(--text-1);
+			opacity: 0;
+			animation: slideUp 0.5s ease 0.1s forwards;
+		}
+
+		&__info {
+			margin-top: 10px;
+			max-width: 340px;
+			font-size: 13px;
+			line-height: 1.8;
+			color: var(--text-3);
+			opacity: 0;
+			animation: slideUp 0.5s ease 0.2s forwards;
+		}
+
+		&__return-home {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			margin-top: 26px;
+			padding: 10px 24px;
+			border: 1px solid rgba(255, 255, 255, 0.24);
+			border-radius: 12px;
+			background: linear-gradient(135deg, var(--brand), var(--brand-2));
+			box-shadow: 0 12px 28px -14px color-mix(in srgb, var(--brand) 85%, transparent);
+			color: var(--brand-ink);
+			font-size: 14px;
+			font-weight: 600;
+			cursor: pointer;
+			opacity: 0;
+			animation: slideUp 0.5s ease 0.3s forwards;
+			transition: filter 0.2s ease, transform 0.2s ease;
+
+			&:hover {
+				filter: brightness(1.07);
+				transform: translateY(-1px);
+			}
+		}
+
+		@keyframes slideUp {
+			0% {
+				transform: translateY(24px);
 				opacity: 0;
-				margin-bottom: 20px;
-				animation-name: slideUp;
-				animation-duration: 0.5s;
-				animation-fill-mode: forwards;
 			}
+			100% {
+				transform: translateY(0);
+				opacity: 1;
+			}
+		}
+	}
 
-			&__headline {
-				font-size: 20px;
-				line-height: 24px;
-				color: #222;
-				font-weight: bold;
-				opacity: 0;
-				margin-bottom: 10px;
-				animation-name: slideUp;
-				animation-duration: 0.5s;
-				animation-delay: 0.1s;
-				animation-fill-mode: forwards;
-			}
+	@media (max-width: 760px) {
+		.wscn-http404 {
+			flex-direction: column;
+			gap: 24px;
+			padding: 22px;
+			border-radius: 24px;
+			text-align: center;
+		}
 
-			&__info {
-				font-size: 13px;
-				line-height: 21px;
-				color: grey;
-				opacity: 0;
-				margin-bottom: 30px;
-				animation-name: slideUp;
-				animation-duration: 0.5s;
-				animation-delay: 0.2s;
-				animation-fill-mode: forwards;
-			}
+		.pic-404 {
+			flex: 0 0 auto;
+			width: 100%;
+		}
 
-			&__return-home {
-				display: block;
-				float: left;
-				width: 110px;
-				height: 36px;
-				background: #1482f0;
-				border-radius: 100px;
-				text-align: center;
-				color: #ffffff;
-				opacity: 0;
-				font-size: 14px;
-				line-height: 36px;
-				cursor: pointer;
-				animation-name: slideUp;
-				animation-duration: 0.5s;
-				animation-delay: 0.3s;
-				animation-fill-mode: forwards;
-			}
-
-			@keyframes slideUp {
-				0% {
-					transform: translateY(60px);
-					opacity: 0;
-				}
-				100% {
-					transform: translateY(0);
-					opacity: 1;
-				}
-			}
+		.bullshit__info {
+			margin-left: auto;
+			margin-right: auto;
 		}
 	}
 </style>
